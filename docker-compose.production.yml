@@ -7,7 +7,7 @@ services:
       # Enable Swarm provider for Traefik v3
       - "--providers.swarm=true"
       - "--providers.swarm.exposedbydefault=false"
-      - "--providers.swarm.network=app-network"
+      - "--providers.swarm.network=english-subtitels_app-network"
       # API and dashboard
       - "--api.dashboard=true"
       - "--api.insecure=false"
