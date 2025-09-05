@@ -62,6 +62,12 @@ jobs:
             exit 1
           fi
           
+          if ! docker secret inspect seq_admin_password_hash >/dev/null 2>&1; then
+            echo "❌ ERROR: seq_admin_password_hash secret not found"
+            echo "Create it with: echo 'your_seq_password_hash' | docker secret create seq_admin_password_hash -"
+            exit 1
+          fi
+          
           echo "✅ All required secrets found"
           
           # Show docker-compose content
