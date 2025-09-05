@@ -117,7 +117,7 @@ services:
     secrets:
       - seq_admin_hash
     # Use entrypoint script to read secret and set environment variable
-    entrypoint: ["/bin/sh", "-c", "export SEQ_FIRSTRUN_ADMINPASSWORDHASH=$$(cat /run/secrets/seq_admin_hash) && exec /opt/seq/seq"]
+    entrypoint: ["/bin/sh", "-c", "export SEQ_FIRSTRUN_ADMINPASSWORDHASH=$$(cat /run/secrets/seq_admin_hash) && exec /entrypoint.sh"]
     volumes:
       - seq-data:/data
     networks:
