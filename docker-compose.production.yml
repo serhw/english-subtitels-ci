@@ -20,13 +20,11 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=admin@sub-english.top"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      # Global HTTP to HTTPS redirect
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      # Logging
-      - "--log.level=INFO"
+      # Logging (debug level to troubleshoot)
+      - "--log.level=DEBUG"
       - "--accesslog=true"
+      # Enable ping endpoint for health checks
+      - "--ping=true"
     ports:
       - "80:80"
       - "443:443"
@@ -35,6 +33,12 @@ services:
       - traefik-certificates:/letsencrypt
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       replicas: 1
       placement:
@@ -43,13 +47,11 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        # Traefik dashboard
+        # Traefik dashboard (simplified for testing)
         - "traefik.enable=true"
         - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`)"
-        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard.service=api@internal"
-        - "traefik.http.routers.dashboard.middlewares=auth"
-        - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$K8xwm0fR8QfF8QJ2KV/C5u.jZ8YSrV0Y0QMxrVxJQ8zQo2rQK8X2u"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
   subtitles-api:
     image: ${DOCKER_IMAGE:-ghcr.io/serhw/english-subtitels-api:latest}

@@ -95,6 +95,7 @@ jobs:
           
           echo "=== Service Logs (last 50 lines) ==="
           set +e  # Temporarily disable exit on error for optional log commands
+          docker service logs --tail 50 english-subtitels_traefik 2>/dev/null || echo "No logs for traefik"
           docker service logs --tail 50 english-subtitels_subtitles-api 2>/dev/null || echo "No logs for subtitles-api"
           docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
           set -e  # Re-enable exit on error
