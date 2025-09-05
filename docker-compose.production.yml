@@ -1,10 +1,58 @@
 version: '3.8'
 
 services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      # Enable Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=app-network"
+      # API and dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      # Entry points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # SSL certificate resolver
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@sub-english.top"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # Global HTTP to HTTPS redirect
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      # Logging
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certificates:/letsencrypt
+    networks:
+      - app-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      labels:
+        # Traefik dashboard
+        - "traefik.enable=true"
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`)"
+        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.middlewares=auth"
+        - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$K8xwm0fR8QfF8QJ2KV/C5u.jZ8YSrV0Y0QMxrVxJQ8zQo2rQK8X2u"
+
   subtitles-api:
     image: ${DOCKER_IMAGE:-ghcr.io/serhw/english-subtitels-api:latest}
-    ports:
-      - "80:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
@@ -16,14 +64,20 @@ services:
       - db_connection_string
     depends_on:
       - seq
+      - traefik
     networks:
       - app-network
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.rule=Host(`sub-english.top`)"
+        - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+        - "traefik.http.services.api.loadbalancer.server.port=8080"
     volumes:
       # Named volume for Serilog buffering
       - serilog-buffer:/tmp/serilog-buffer
@@ -35,8 +89,6 @@ services:
       - SEQ_FIRSTRUN_ADMINUSERNAME=admin
       - SEQ_FIRSTRUN_ADMINPASSWORDHASH=QFu74F0HozBXBGahJyG8YYM7mgZU+c2PdbfTMbn4tqGxiGM6mLQUiZfdXBWFOO5438iXtkMqmIavZ7ZUYPomgx1FILpeB8SHh7bBW4vxjOE9
       # Generate hash with: echo 'your-password' | docker run --rm -i datalust/seq config hash
-    ports:
-      - "5341:5341"
     volumes:
       - seq-data:/data
     networks:
@@ -45,6 +97,11 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.seq.rule=Host(`logs.sub-english.top`)"
+        - "traefik.http.routers.seq.tls.certresolver=letsencrypt"
+        - "traefik.http.services.seq.loadbalancer.server.port=5341"
 
 networks:
   app-network:
@@ -54,6 +111,7 @@ networks:
 volumes:
   seq-data:
   serilog-buffer:
+  traefik-certificates:
 
 secrets:
   db_connection_string:
