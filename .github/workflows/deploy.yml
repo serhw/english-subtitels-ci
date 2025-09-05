@@ -47,13 +47,7 @@ jobs:
           # Check required secrets (must exist for deployment to work)
           echo "=== Checking Docker Secrets ==="
           docker secret ls
-          
-          if ! docker secret inspect subtitles_seq_api_key >/dev/null 2>&1; then
-            echo "❌ ERROR: subtitles_seq_api_key secret not found"
-            echo "Create it with: echo 'your_api_key' | docker secret create subtitles_seq_api_key -"
-            exit 1
-          fi
-          
+                    
           if ! docker secret inspect subtitles_db_connection >/dev/null 2>&1; then
             echo "❌ ERROR: subtitles_db_connection secret not found"
             echo "Create it with: echo 'your_connection_string' | docker secret create subtitles_db_connection -"

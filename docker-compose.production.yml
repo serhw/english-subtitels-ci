@@ -13,7 +13,6 @@ services:
       # You can also override log levels
       - Serilog__MinimumLevel__Default=Information
     secrets:
-      - seq_api_key
       - db_connection_string
     depends_on:
       - seq
@@ -55,9 +54,6 @@ volumes:
   seq-data:
 
 secrets:
-  seq_api_key:
-    external: true
-    name: subtitles_seq_api_key
   db_connection_string:
     external: true
     name: subtitles_db_connection
