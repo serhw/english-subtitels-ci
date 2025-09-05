@@ -19,14 +19,14 @@ services:
     networks:
       - app-network
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
     volumes:
-      # Mount temp directory for Seq buffering
-      - /tmp/serilog-buffer:/tmp/serilog-buffer
+      # Named volume for Serilog buffering
+      - serilog-buffer:/tmp/serilog-buffer
 
   seq:
     image: datalust/seq:latest
@@ -53,6 +53,7 @@ networks:
 
 volumes:
   seq-data:
+  serilog-buffer:
 
 secrets:
   db_connection_string:
