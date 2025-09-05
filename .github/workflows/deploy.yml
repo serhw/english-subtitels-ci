@@ -62,6 +62,22 @@ jobs:
           echo "=== Docker Compose Content ==="
           cat docker-compose.yml
           
+          # Check volumes before removal (for safety)
+          echo "=== Volumes Before Stack Removal ==="
+          docker volume ls | grep -E "(seq-data|serilog-buffer|traefik-certificates)" || echo "No relevant volumes found yet"
+          
+          # Remove existing stack to avoid port conflicts
+          echo "=== Removing Existing Stack (if any) ==="
+          docker stack rm english-subtitels || echo "No existing stack to remove"
+          
+          # Wait for cleanup
+          echo "Waiting for stack cleanup..."
+          sleep 10
+          
+          # Verify volumes still exist after stack removal
+          echo "=== Volumes After Stack Removal (should still exist) ==="
+          docker volume ls | grep -E "(seq-data|serilog-buffer|traefik-certificates)" || echo "No volumes found - will be created on deploy"
+          
           # Deploy the stack
           echo "=== Deploying Stack ==="
           docker stack deploy -c docker-compose.yml --with-registry-auth english-subtitels
