@@ -114,10 +114,8 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - SEQ_FIRSTRUN_ADMINUSERNAME=admin
-    secrets:
-      - seq_admin_hash
-    # Use entrypoint script to read secret and set environment variable
-    entrypoint: ["/bin/sh", "-c", "export SEQ_FIRSTRUN_ADMINPASSWORDHASH=$$(cat /run/secrets/seq_admin_hash) && exec /entrypoint.sh"]
+      # TODO: Move to secret once we figure out the proper approach
+      - SEQ_FIRSTRUN_ADMINPASSWORDHASH=QFu74F0HozBXBGahJyG8YYM7mgZU+c2PdbfTMbn4tqGxiGM6mLQUiZfdXBWFOO5438iXtkMqmIavZ7ZUYPomgx1FILpeB8SHh7bBW4vxjOE9
     volumes:
       - seq-data:/data
     networks:
@@ -156,6 +154,3 @@ secrets:
   dashboard_users:
     external: true
     name: traefik_dashboard_users
-  seq_admin_hash:
-    external: true
-    name: seq_admin_password_hash
