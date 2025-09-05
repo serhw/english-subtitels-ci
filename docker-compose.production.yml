@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.5
     command:
       # Enable Swarm provider for Traefik v3
       - "--providers.swarm=true"
