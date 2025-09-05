@@ -1,0 +1,77 @@
+name: Deploy to Docker Swarm
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Deploy to Docker Swarm
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        script: |
+          # Create deployment directory if it doesn't exist
+          mkdir -p /opt/english-subtitels
+          cd /opt/english-subtitels
+          
+          # Download docker-compose file
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3.raw" \
+               -o docker-compose.yml \
+               https://api.github.com/repos/${{ github.repository }}/contents/docker-compose.production.yml
+          
+          # Set environment variables
+          export IMAGE_TAG=${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          
+          # Update the Docker service
+          docker service update \
+            --image $IMAGE_TAG \
+            --with-registry-auth \
+            english-subtitels_api 2>/dev/null || \
+          docker stack deploy -c docker-compose.yml --with-registry-auth english-subtitels
+          
+          # Clean up old images
+          docker system prune -f
