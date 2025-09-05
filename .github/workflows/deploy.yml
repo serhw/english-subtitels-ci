@@ -147,12 +147,7 @@ jobs:
               docker exec $TRAEFIK_CONTAINER wget -qO- --timeout=5 http://seq:5341 >/dev/null 2>&1 && echo "✅ Seq ingestion port healthy" || echo "❌ Seq ingestion port not responding"
             fi
           fi
-          
-          # Final check - test external routing
-          echo "=== External Routing Test ==="
-          echo "Testing if Traefik can route to logs.sub-english.top..."
-          curl -s -H "Host: logs.sub-english.top" http://localhost/ | head -c 100 || echo "External routing test failed"
-          
+                    
           # Verify deployment success
           echo "=== Verifying Deployment ==="
           TOTAL_SERVICES=$(docker stack services english-subtitels --format "{{.Name}}" | wc -l)
@@ -170,6 +165,18 @@ jobs:
           fi
           
           echo "✅ Deployment completed - Check logs above for any issues"
+          
+          # HTTPS Setup Information
+          echo ""
+          echo "=== HTTPS Setup Information ==="
+          echo "🔒 SSL certificates will be automatically requested from Let's Encrypt"
+          echo "🌐 Access your services via:"
+          echo "   • API: https://sub-english.top (with auto HTTP→HTTPS redirect)"
+          echo "   • Seq Logs: https://logs.sub-english.top (with auto HTTP→HTTPS redirect)"
+          echo "   • Traefik Dashboard: https://traefik.sub-english.top (with auto HTTP→HTTPS redirect)"
+          echo ""
+          echo "⏳ SSL certificates may take 1-2 minutes to be issued on first deployment"
+          echo "🔄 HTTP requests will automatically redirect to HTTPS"
           
           # Clean up old images (optional)
           set +e  # Don't fail if cleanup fails

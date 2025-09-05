@@ -14,13 +14,13 @@ services:
       # Entry points
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # SSL certificate resolver
+      # SSL certificate resolver with Let's Encrypt
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=admin@sub-english.top"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      # Logging (debug level to troubleshoot)
-      - "--log.level=DEBUG"
+      # Logging
+      - "--log.level=INFO"
       - "--accesslog=true"
       # Enable ping endpoint for health checks
       - "--ping=true"
@@ -46,11 +46,17 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        # Traefik dashboard
+        # Traefik dashboard with HTTPS
         - "traefik.enable=true"
         - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`)"
-        - "traefik.http.routers.dashboard.entrypoints=web"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard.service=api@internal"
+        # HTTP to HTTPS redirect for dashboard
+        - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.sub-english.top`)"
+        - "traefik.http.routers.dashboard-insecure.entrypoints=web"
+        - "traefik.http.routers.dashboard-insecure.middlewares=dashboard-redirect"
+        - "traefik.http.middlewares.dashboard-redirect.redirectscheme.scheme=https"
 
   subtitles-api:
     image: ${DOCKER_IMAGE:-ghcr.io/serhw/english-subtitels-api:latest}
@@ -76,9 +82,16 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
+        # HTTPS router for API
         - "traefik.http.routers.api.rule=Host(`sub-english.top`)"
-        - "traefik.http.routers.api.entrypoints=web"
+        - "traefik.http.routers.api.entrypoints=websecure"
+        - "traefik.http.routers.api.tls.certresolver=letsencrypt"
         - "traefik.http.services.api.loadbalancer.server.port=8080"
+        # HTTP to HTTPS redirect for API
+        - "traefik.http.routers.api-insecure.rule=Host(`sub-english.top`)"
+        - "traefik.http.routers.api-insecure.entrypoints=web"
+        - "traefik.http.routers.api-insecure.middlewares=api-redirect"
+        - "traefik.http.middlewares.api-redirect.redirectscheme.scheme=https"
     volumes:
       # Named volume for Serilog buffering
       - serilog-buffer:/tmp/serilog-buffer
@@ -100,9 +113,16 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
+        # HTTPS router for Seq
         - "traefik.http.routers.seq.rule=Host(`logs.sub-english.top`)"
-        - "traefik.http.routers.seq.entrypoints=web"
+        - "traefik.http.routers.seq.entrypoints=websecure"
+        - "traefik.http.routers.seq.tls.certresolver=letsencrypt"
         - "traefik.http.services.seq.loadbalancer.server.port=80"
+        # HTTP to HTTPS redirect for Seq
+        - "traefik.http.routers.seq-insecure.rule=Host(`logs.sub-english.top`)"
+        - "traefik.http.routers.seq-insecure.entrypoints=web"
+        - "traefik.http.routers.seq-insecure.middlewares=seq-redirect"
+        - "traefik.http.middlewares.seq-redirect.redirectscheme.scheme=https"
 
 networks:
   app-network:
