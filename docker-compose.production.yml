@@ -46,8 +46,7 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        # Traefik dashboard with HTTPS
-        - "traefik.enable=true"
+        # Traefik dashboard configuration - using api@internal so no port needed
         - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`)"
         - "traefik.http.routers.dashboard.entrypoints=websecure"
         - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
