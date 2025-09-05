@@ -1,8 +1,6 @@
 name: Deploy to Docker Swarm
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -32,19 +30,42 @@ jobs:
                -o docker-compose.yml \
                https://api.github.com/repos/${{ github.repository }}/contents/docker-compose.production.yml
           
+          # Check Docker Swarm status
+          echo "=== Docker Swarm Status ==="
+          docker node ls || echo "Docker Swarm not initialized"
+          
+          # Check existing stacks
+          echo "=== Existing Stacks ==="
+          docker stack ls
+          
           # Create required secrets if they don't exist (you may need to set these manually)
-          echo "Checking for required Docker secrets..."
-          docker secret inspect subtitles_seq_api_key >/dev/null 2>&1 || echo "Warning: subtitles_seq_api_key secret not found"
-          docker secret inspect subtitles_db_connection >/dev/null 2>&1 || echo "Warning: subtitles_db_connection secret not found"
+          echo "=== Checking Docker Secrets ==="
+          docker secret ls
+          docker secret inspect subtitles_seq_api_key >/dev/null 2>&1 || echo "❌ ERROR: subtitles_seq_api_key secret not found"
+          docker secret inspect subtitles_db_connection >/dev/null 2>&1 || echo "❌ ERROR: subtitles_db_connection secret not found"
+          
+          # Show docker-compose content
+          echo "=== Docker Compose Content ==="
+          cat docker-compose.yml
           
           # Deploy the stack
+          echo "=== Deploying Stack ==="
           docker stack deploy -c docker-compose.yml --with-registry-auth english-subtitels
           
           # Wait for deployment
+          echo "=== Waiting for deployment ==="
           sleep 30
           
-          # Show service status
+          # Show detailed service status
+          echo "=== Service Status ==="
           docker stack services english-subtitels
+          
+          echo "=== Service Tasks ==="
+          docker stack ps english-subtitels --no-trunc
+          
+          echo "=== Service Logs (last 50 lines) ==="
+          docker service logs --tail 50 english-subtitels_subtitles-api 2>/dev/null || echo "No logs for subtitles-api"
+          docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
           
           # Clean up old images
           docker system prune -f
