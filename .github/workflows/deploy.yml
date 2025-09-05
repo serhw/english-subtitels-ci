@@ -104,9 +104,29 @@ jobs:
           echo "=== Service Status Detail ==="
           docker stack services english-subtitels --format "table {{.Name}}\t{{.Replicas}}\t{{.Image}}"
           
-          # Check Traefik configuration
+          # Check Traefik configuration and service discovery
           echo "=== Traefik Config Check ==="
-          docker service logs --tail 10 english-subtitels_traefik | grep -i "provider\|swarm\|service" || echo "No provider logs found"
+          docker service logs --tail 20 english-subtitels_traefik | grep -i "provider\|swarm\|service\|discovery\|router\|seq" || echo "No provider logs found"
+          
+          # Check if services are on the same network
+          echo "=== Network Configuration ==="
+          docker network ls | grep app-network || echo "app-network not found"
+          
+          # Check service details
+          echo "=== Service Labels Check ==="
+          docker service inspect english-subtitels_seq --format '{{.Spec.Labels}}' || echo "Seq service not found"
+          docker service inspect english-subtitels_traefik --format '{{.Spec.Labels}}' || echo "Traefik service not found"
+          
+          # Test internal connectivity
+          echo "=== Internal Connectivity Test ==="
+          docker service logs --tail 5 english-subtitels_traefik | grep -i "seq\|router\|discovered" || echo "No service discovery logs"
+          
+          # Check if seq is reachable internally
+          TRAEFIK_CONTAINER=$(docker ps --filter "name=english-subtitels_traefik" --format "{{.ID}}" | head -1)
+          if [ -n "$TRAEFIK_CONTAINER" ]; then
+            echo "Testing internal seq connectivity from Traefik container..."
+            docker exec $TRAEFIK_CONTAINER wget -qO- --timeout=5 http://seq:5341 >/dev/null && echo "✅ Seq reachable internally" || echo "❌ Seq not reachable internally"
+          fi
           
           # Verify deployment success
           echo "=== Verifying Deployment ==="
