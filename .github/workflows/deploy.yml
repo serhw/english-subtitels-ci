@@ -225,7 +225,7 @@ jobs:
           echo "🌐 Access your services via:"
           echo "   • API: https://sub-english.top (with auto HTTP→HTTPS redirect)"
           echo "   • Seq Logs: https://logs.sub-english.top (with auto HTTP→HTTPS redirect)"
-          echo "   • Traefik Dashboard: http://YOUR_SERVER_IP:8080 (direct access)"
+          echo "   • Traefik Dashboard: https://traefik.sub-english.top (protected with BasicAuth)"
           echo ""
           echo "⏳ SSL certificates may take 1-2 minutes to be issued on first deployment"
           echo "🔄 HTTP requests will automatically redirect to HTTPS"

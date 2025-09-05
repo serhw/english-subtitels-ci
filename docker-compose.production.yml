@@ -8,9 +8,9 @@ services:
       - "--providers.swarm=true"
       - "--providers.swarm.exposedbydefault=false"
       - "--providers.swarm.network=english-subtitels_app-network"
-      # API and dashboard - simplified for now
+      # API and dashboard (secure)
       - "--api.dashboard=true"
-      - "--api.insecure=true"
+      - "--api.insecure=false"
       # Entry points
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -27,7 +27,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certificates:/letsencrypt
@@ -46,7 +45,21 @@ services:
           - node.role == manager
       restart_policy:
         condition: on-failure
-      # Note: Dashboard routing configured via command line flags, no labels needed
+      labels:
+        - "traefik.enable=true"
+        # HTTPS dashboard router protected with BasicAuth
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+        # Create basicauth users with: htpasswd -nb admin 'yourpass' | sed -e 's/\$/$$/g'
+        - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$qS8m2A2f$$0x6WJ7k5v8m9C3q2Vb2rE/"
+        # HTTP to HTTPS redirect for dashboard
+        - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.sub-english.top`)"
+        - "traefik.http.routers.dashboard-insecure.entrypoints=web"
+        - "traefik.http.routers.dashboard-insecure.middlewares=dashboard-redirect"
+        - "traefik.http.middlewares.dashboard-redirect.redirectscheme.scheme=https"
 
   subtitles-api:
     image: ${DOCKER_IMAGE:-ghcr.io/serhw/english-subtitels-api:latest}
