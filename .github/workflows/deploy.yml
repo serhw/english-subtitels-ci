@@ -70,9 +70,17 @@ jobs:
           echo "=== Removing Existing Stack (if any) ==="
           docker stack rm english-subtitels || echo "No existing stack to remove"
           
-          # Wait for cleanup
-          echo "Waiting for stack cleanup..."
-          sleep 10
+          # Wait for complete cleanup including networks
+          echo "Waiting for complete stack and network cleanup..."
+          sleep 15
+          
+          # Verify network cleanup
+          echo "Checking if old networks are removed..."
+          while docker network ls | grep -q "english-subtitels_app-network"; do
+            echo "Waiting for network cleanup to complete..."
+            sleep 3
+          done
+          echo "✅ Network cleanup completed"
           
           # Verify volumes still exist after stack removal
           echo "=== Volumes After Stack Removal (should still exist) ==="
@@ -80,7 +88,47 @@ jobs:
           
           # Deploy the stack
           echo "=== Deploying Stack ==="
+          
+          # Show what networks exist before deployment
+          echo "Networks before deployment:"
+          docker network ls | grep -E "(ingress|overlay|english-subtitels)" || echo "No overlay networks found"
+          
+          # Deploy with explicit output and error handling
+          echo "Starting deployment..."
+          set +e  # Temporarily disable exit on error for deployment
+          DEPLOY_EXIT_CODE=0
+          
           docker stack deploy -c docker-compose.yml --with-registry-auth english-subtitels
+          DEPLOY_EXIT_CODE=$?
+          
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "❌ First deployment attempt failed (exit code: $DEPLOY_EXIT_CODE)"
+            echo "This is often due to network cleanup timing. Waiting and retrying..."
+            sleep 15
+            echo "Retrying deployment..."
+            docker stack deploy -c docker-compose.yml --with-registry-auth english-subtitels
+            DEPLOY_EXIT_CODE=$?
+          fi
+          
+          set -e  # Re-enable exit on error
+          
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "❌ ERROR: Deployment failed after retry"
+            exit 1
+          else
+            echo "✅ Deployment command completed successfully"
+          fi
+          
+          # Verify network was created
+          echo "Verifying network creation..."
+          sleep 5
+          if docker network ls | grep -q "english-subtitels_app-network"; then
+            echo "✅ Network english-subtitels_app-network created successfully"
+          else
+            echo "❌ WARNING: Network english-subtitels_app-network not found"
+            echo "Available networks:"
+            docker network ls
+          fi
           
           # Wait for deployment
           echo "=== Waiting for deployment ==="
