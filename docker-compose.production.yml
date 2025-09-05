@@ -82,7 +82,6 @@ services:
       - Serilog__MinimumLevel__Default=Information
     secrets:
       - db_connection_string
-      - dashboard_users
     depends_on:
       - seq
       - traefik
