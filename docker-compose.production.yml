@@ -30,6 +30,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certificates:/letsencrypt
+    secrets:
+      - dashboard_users
     networks:
       - app-network
     healthcheck:
@@ -53,8 +55,8 @@ services:
         - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard.service=api@internal"
         - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
-        # Create basicauth users with: htpasswd -nb admin 'yourpass' | sed -e 's/\$/$$/g'
-        - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$qS8m2A2f$$0x6WJ7k5v8m9C3q2Vb2rE/"
+        # BasicAuth using Docker secret (more secure for public repos)
+        - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
         # Redirect root path "/" to "/dashboard" over HTTPS
         - "traefik.http.routers.dashboard-root.rule=Host(`traefik.sub-english.top`) && Path(`/`)"
         - "traefik.http.routers.dashboard-root.entrypoints=websecure"
@@ -80,6 +82,7 @@ services:
       - Serilog__MinimumLevel__Default=Information
     secrets:
       - db_connection_string
+      - dashboard_users
     depends_on:
       - seq
       - traefik
@@ -149,3 +152,6 @@ secrets:
   db_connection_string:
     external: true
     name: subtitles_db_connection
+  dashboard_users:
+    external: true
+    name: traefik_dashboard_users

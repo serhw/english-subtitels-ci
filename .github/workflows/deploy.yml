@@ -56,6 +56,12 @@ jobs:
             exit 1
           fi
           
+          if ! docker secret inspect traefik_dashboard_users >/dev/null 2>&1; then
+            echo "❌ ERROR: traefik_dashboard_users secret not found"
+            echo "Create it with: echo 'admin:your_bcrypt_hash' | docker secret create traefik_dashboard_users -"
+            exit 1
+          fi
+          
           echo "✅ All required secrets found"
           
           # Show docker-compose content
