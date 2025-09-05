@@ -55,6 +55,12 @@ services:
         - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
         # Create basicauth users with: htpasswd -nb admin 'yourpass' | sed -e 's/\$/$$/g'
         - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$qS8m2A2f$$0x6WJ7k5v8m9C3q2Vb2rE/"
+        # Redirect root path "/" to "/dashboard" over HTTPS
+        - "traefik.http.routers.dashboard-root.rule=Host(`traefik.sub-english.top`) && Path(`/`)"
+        - "traefik.http.routers.dashboard-root.entrypoints=websecure"
+        - "traefik.http.routers.dashboard-root.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.dashboard-root.middlewares=dashboard-prefix"
+        - "traefik.http.middlewares.dashboard-prefix.addprefix.prefix=/dashboard"
         # HTTP to HTTPS redirect for dashboard
         - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.sub-english.top`)"
         - "traefik.http.routers.dashboard-insecure.entrypoints=web"
