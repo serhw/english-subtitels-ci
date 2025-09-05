@@ -58,7 +58,7 @@ services:
         - "traefik.http.routers.dashboard-root.entrypoints=websecure"
         - "traefik.http.routers.dashboard-root.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard-root.middlewares=dashboard-redirect-root"
-        - "traefik.http.middlewares.dashboard-redirect-root.redirectregex.regex=^https://traefik.sub-english.top/$"
+        - "traefik.http.middlewares.dashboard-redirect-root.redirectregex.regex=^https://traefik.sub-english.top/$$"
         - "traefik.http.middlewares.dashboard-redirect-root.redirectregex.replacement=https://traefik.sub-english.top/dashboard/"
         # HTTP to HTTPS redirect
         - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.sub-english.top`)"
