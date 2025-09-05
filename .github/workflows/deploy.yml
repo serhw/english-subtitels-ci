@@ -127,7 +127,25 @@ jobs:
           TRAEFIK_CONTAINER=$(docker ps --filter "name=english-subtitels_traefik" --format "{{.ID}}" | head -1)
           if [ -n "$TRAEFIK_CONTAINER" ]; then
             echo "Testing internal seq connectivity from Traefik container..."
-            docker exec $TRAEFIK_CONTAINER wget -qO- --timeout=5 http://seq:5341 >/dev/null && echo "✅ Seq reachable internally" || echo "❌ Seq not reachable internally"
+            
+            # Test basic connectivity to Seq UI (port 80)
+            if docker exec $TRAEFIK_CONTAINER wget -qO- --timeout=5 http://seq:80 >/dev/null 2>&1; then
+              echo "✅ Seq UI reachable internally"
+            else
+              echo "❌ Seq UI not reachable internally - trying different approaches..."
+              
+              # Check if seq service is actually running
+              echo "Seq service logs (last 10 lines):"
+              docker service logs --tail 10 english-subtitels_seq || echo "No seq logs"
+              
+              # Test connectivity with more details
+              echo "Detailed connectivity test to Seq UI:"
+              docker exec $TRAEFIK_CONTAINER wget -O- --timeout=5 http://seq:80 2>&1 | head -5 || echo "Detailed test failed"
+              
+              # Also test the ingestion port (5341) to ensure Seq is running
+              echo "Testing Seq ingestion port (5341) for service health:"
+              docker exec $TRAEFIK_CONTAINER wget -qO- --timeout=5 http://seq:5341 >/dev/null 2>&1 && echo "✅ Seq ingestion port healthy" || echo "❌ Seq ingestion port not responding"
+            fi
           fi
           
           # Final check - test external routing

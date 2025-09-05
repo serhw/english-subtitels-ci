@@ -102,7 +102,7 @@ services:
         - "traefik.enable=true"
         - "traefik.http.routers.seq.rule=Host(`logs.sub-english.top`)"
         - "traefik.http.routers.seq.entrypoints=web"
-        - "traefik.http.services.seq.loadbalancer.server.port=5341"
+        - "traefik.http.services.seq.loadbalancer.server.port=80"
 
 networks:
   app-network:
