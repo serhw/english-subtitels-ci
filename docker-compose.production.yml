@@ -33,7 +33,8 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - SEQ_FIRSTRUN_ADMINUSERNAME=admin
-      - SEQ_FIRSTRUN_ADMINPASSWORDHASH=# Generate with: echo 'your-password' | docker run --rm -i datalust/seq config hash
+      - SEQ_FIRSTRUN_ADMINPASSWORDHASH=QFu74F0HozBXBGahJyG8YYM7mgZU+c2PdbfTMbn4tqGxiGM6mLQUiZfdXBWFOO5438iXtkMqmIavZ7ZUYPomgx1FILpeB8SHh7bBW4vxjOE9
+      # Generate hash with: echo 'your-password' | docker run --rm -i datalust/seq config hash
     ports:
       - "5341:5341"
     volumes:
