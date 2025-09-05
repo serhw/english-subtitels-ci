@@ -20,6 +20,9 @@ jobs:
         username: ${{ secrets.DEPLOY_USER }}
         key: ${{ secrets.DEPLOY_SSH_KEY }}
         script: |
+          set -e  # Exit on any error
+          set -u  # Exit on undefined variables
+          
           # Create deployment directory if it doesn't exist
           mkdir -p /opt/english-subtitels
           cd /opt/english-subtitels
@@ -32,17 +35,32 @@ jobs:
           
           # Check Docker Swarm status
           echo "=== Docker Swarm Status ==="
-          docker node ls || echo "Docker Swarm not initialized"
+          if ! docker node ls; then
+            echo "❌ ERROR: Docker Swarm not initialized"
+            exit 1
+          fi
           
           # Check existing stacks
           echo "=== Existing Stacks ==="
           docker stack ls
           
-          # Create required secrets if they don't exist (you may need to set these manually)
+          # Check required secrets (must exist for deployment to work)
           echo "=== Checking Docker Secrets ==="
           docker secret ls
-          docker secret inspect subtitles_seq_api_key >/dev/null 2>&1 || echo "❌ ERROR: subtitles_seq_api_key secret not found"
-          docker secret inspect subtitles_db_connection >/dev/null 2>&1 || echo "❌ ERROR: subtitles_db_connection secret not found"
+          
+          if ! docker secret inspect subtitles_seq_api_key >/dev/null 2>&1; then
+            echo "❌ ERROR: subtitles_seq_api_key secret not found"
+            echo "Create it with: echo 'your_api_key' | docker secret create subtitles_seq_api_key -"
+            exit 1
+          fi
+          
+          if ! docker secret inspect subtitles_db_connection >/dev/null 2>&1; then
+            echo "❌ ERROR: subtitles_db_connection secret not found"
+            echo "Create it with: echo 'your_connection_string' | docker secret create subtitles_db_connection -"
+            exit 1
+          fi
+          
+          echo "✅ All required secrets found"
           
           # Show docker-compose content
           echo "=== Docker Compose Content ==="
@@ -64,8 +82,21 @@ jobs:
           docker stack ps english-subtitels --no-trunc
           
           echo "=== Service Logs (last 50 lines) ==="
+          set +e  # Temporarily disable exit on error for optional log commands
           docker service logs --tail 50 english-subtitels_subtitles-api 2>/dev/null || echo "No logs for subtitles-api"
           docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
+          set -e  # Re-enable exit on error
           
-          # Clean up old images
+          # Verify deployment success
+          echo "=== Verifying Deployment ==="
+          RUNNING_SERVICES=$(docker stack services english-subtitels --format "table {{.Name}}\t{{.Replicas}}" | grep -c "1/1\|2/2" || true)
+          if [ "$RUNNING_SERVICES" -eq 0 ]; then
+            echo "❌ ERROR: No services are running properly"
+            exit 1
+          fi
+          echo "✅ Deployment successful - $RUNNING_SERVICES services running"
+          
+          # Clean up old images (optional)
+          set +e  # Don't fail if cleanup fails
           docker system prune -f
+          set -e
