@@ -10,7 +10,7 @@ services:
       - "--providers.swarm.network=english-subtitels_app-network"
       # API and dashboard
       - "--api.dashboard=true"
-      - "--api.insecure=false"
+      - "--api.debug=true"
       # Entry points
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -46,12 +46,21 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        # Traefik dashboard configuration - using api@internal so no port needed
-        - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`)"
+        # Enable Traefik for dashboard routing
+        - "traefik.enable=true"
+        # Dashboard HTTPS router with path
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.sub-english.top`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
         - "traefik.http.routers.dashboard.entrypoints=websecure"
         - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard.service=api@internal"
-        # HTTP to HTTPS redirect for dashboard
+        # Dashboard root redirect
+        - "traefik.http.routers.dashboard-root.rule=Host(`traefik.sub-english.top`)"
+        - "traefik.http.routers.dashboard-root.entrypoints=websecure"
+        - "traefik.http.routers.dashboard-root.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.dashboard-root.middlewares=dashboard-redirect-root"
+        - "traefik.http.middlewares.dashboard-redirect-root.redirectregex.regex=^https://traefik.sub-english.top/$"
+        - "traefik.http.middlewares.dashboard-redirect-root.redirectregex.replacement=https://traefik.sub-english.top/dashboard/"
+        # HTTP to HTTPS redirect
         - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.sub-english.top`)"
         - "traefik.http.routers.dashboard-insecure.entrypoints=web"
         - "traefik.http.routers.dashboard-insecure.middlewares=dashboard-redirect"

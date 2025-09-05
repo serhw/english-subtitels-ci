@@ -154,7 +154,11 @@ jobs:
           
           # Check Traefik configuration and service discovery
           echo "=== Traefik Config Check ==="
-          docker service logs --tail 20 english-subtitels_traefik | grep -i "provider\|swarm\|service\|discovery\|router\|seq" || echo "No provider logs found"
+          docker service logs --tail 30 english-subtitels_traefik | grep -i "provider\|swarm\|service\|discovery\|router\|seq\|dashboard\|api" || echo "No provider logs found"
+          
+          # Check specifically for dashboard/API routing logs
+          echo "=== Traefik Dashboard/API Routing ==="
+          docker service logs --tail 20 english-subtitels_traefik | grep -i "dashboard\|api@internal\|traefik.sub-english.top" || echo "No dashboard routing logs found"
           
           # Check if services are on the same network
           echo "=== Network Configuration ==="
