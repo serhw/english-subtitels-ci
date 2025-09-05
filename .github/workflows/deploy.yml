@@ -100,6 +100,14 @@ jobs:
           docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
           set -e  # Re-enable exit on error
           
+          # Check which services are actually running
+          echo "=== Service Status Detail ==="
+          docker stack services english-subtitels --format "table {{.Name}}\t{{.Replicas}}\t{{.Image}}"
+          
+          # Check Traefik configuration
+          echo "=== Traefik Config Check ==="
+          docker service logs --tail 10 english-subtitels_traefik | grep -i "provider\|swarm\|service" || echo "No provider logs found"
+          
           # Verify deployment success
           echo "=== Verifying Deployment ==="
           RUNNING_SERVICES=$(docker stack services english-subtitels --format "table {{.Name}}\t{{.Replicas}}" | grep -c "1/1\|2/2" || true)
