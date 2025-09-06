@@ -93,6 +93,9 @@ jobs:
           echo "=== Volumes After Stack Removal (should still exist) ==="
           docker volume ls | grep -E "(seq-data|serilog-buffer|traefik-certificates)" || echo "No volumes found - will be created on deploy"
           
+          # Set environment variables
+          export SEQ_ADMINPASSWORDHASH="${{ secrets.SEQ_ADMIN_PASSWORD_HASH }}"
+          
           # Deploy the stack
           echo "=== Deploying Stack ==="
           
