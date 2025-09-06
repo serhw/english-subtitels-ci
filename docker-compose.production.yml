@@ -136,6 +136,39 @@ services:
       retries: 3
       start_period: 60s
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL_FILE=/run/secrets/pgadmin_email
+      - PGADMIN_DEFAULT_PASSWORD_FILE=/run/secrets/pgadmin_password
+      - PGADMIN_CONFIG_SERVER_MODE=True
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    secrets:
+      - pgadmin_email
+      - pgadmin_password
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        # HTTPS router for pgAdmin
+        - "traefik.http.routers.pgadmin.rule=Host(`db.sub-english.top`)"
+        - "traefik.http.routers.pgadmin.entrypoints=websecure"
+        - "traefik.http.routers.pgadmin.tls.certresolver=letsencrypt"
+        - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
+        # HTTP to HTTPS redirect for pgAdmin
+        - "traefik.http.routers.pgadmin-insecure.rule=Host(`db.sub-english.top`)"
+        - "traefik.http.routers.pgadmin-insecure.entrypoints=web"
+        - "traefik.http.routers.pgadmin-insecure.middlewares=pgadmin-redirect"
+        - "traefik.http.middlewares.pgadmin-redirect.redirectscheme.scheme=https"
+
   seq:
     image: datalust/seq:latest
     environment:
@@ -170,6 +203,7 @@ networks:
 
 volumes:
   postgres-data:
+  pgadmin-data:
   seq-data:
   serilog-buffer:
   traefik-certificates:
@@ -181,6 +215,12 @@ secrets:
   postgres_password:
     external: true
     name: postgres_password
+  pgadmin_email:
+    external: true
+    name: pgadmin_email
+  pgadmin_password:
+    external: true
+    name: pgadmin_password
   dashboard_users:
     external: true
     name: traefik_dashboard_users

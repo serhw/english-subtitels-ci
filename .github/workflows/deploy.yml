@@ -68,6 +68,18 @@ jobs:
             exit 1
           fi
           
+          if ! docker secret inspect pgadmin_email >/dev/null 2>&1; then
+            echo "❌ ERROR: pgadmin_email secret not found"
+            echo "Create it with: echo 'admin@sub-english.top' | docker secret create pgadmin_email -"
+            exit 1
+          fi
+          
+          if ! docker secret inspect pgadmin_password >/dev/null 2>&1; then
+            echo "❌ ERROR: pgadmin_password secret not found"
+            echo "Create it with: echo 'your_pgadmin_password' | docker secret create pgadmin_password -"
+            exit 1
+          fi
+          
 
           echo "✅ All required secrets found"
           
@@ -161,6 +173,7 @@ jobs:
           set +e  # Temporarily disable exit on error for optional log commands
           docker service logs --tail 50 english-subtitels_traefik 2>/dev/null || echo "No logs for traefik"
           docker service logs --tail 50 english-subtitels_postgres 2>/dev/null || echo "No logs for postgres"
+          docker service logs --tail 50 english-subtitels_pgadmin 2>/dev/null || echo "No logs for pgadmin"
           docker service logs --tail 50 english-subtitels_subtitles-api 2>/dev/null || echo "No logs for subtitles-api"
           docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
           set -e  # Re-enable exit on error
@@ -224,10 +237,10 @@ jobs:
           
           echo "Total services: $TOTAL_SERVICES, Running properly: $RUNNING_SERVICES"
           
-          # We expect 4 services: traefik(1/1), postgres(1/1), seq(1/1), subtitles-api(2/2)
-          if [ "$RUNNING_SERVICES" -lt 4 ]; then
+          # We expect 5 services: traefik(1/1), postgres(1/1), pgadmin(1/1), seq(1/1), subtitles-api(2/2)
+          if [ "$RUNNING_SERVICES" -lt 5 ]; then
             echo "❌ WARNING: Not all services are running properly"
-            echo "Expected: 4 services running, Got: $RUNNING_SERVICES"
+            echo "Expected: 5 services running, Got: $RUNNING_SERVICES"
             # Don't fail deployment, but warn
           else
             echo "✅ All services running properly!"
