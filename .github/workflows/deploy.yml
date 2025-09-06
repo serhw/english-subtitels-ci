@@ -62,7 +62,13 @@ jobs:
             exit 1
           fi
           
+          if ! docker secret inspect postgres_password >/dev/null 2>&1; then
+            echo "❌ ERROR: postgres_password secret not found"
+            echo "Create it with: echo 'your_postgres_password' | docker secret create postgres_password -"
+            exit 1
+          fi
           
+
           echo "✅ All required secrets found"
           
           # Show docker-compose content
@@ -154,6 +160,7 @@ jobs:
           echo "=== Service Logs (last 50 lines) ==="
           set +e  # Temporarily disable exit on error for optional log commands
           docker service logs --tail 50 english-subtitels_traefik 2>/dev/null || echo "No logs for traefik"
+          docker service logs --tail 50 english-subtitels_postgres 2>/dev/null || echo "No logs for postgres"
           docker service logs --tail 50 english-subtitels_subtitles-api 2>/dev/null || echo "No logs for subtitles-api"
           docker service logs --tail 50 english-subtitels_seq 2>/dev/null || echo "No logs for seq"
           set -e  # Re-enable exit on error
@@ -217,10 +224,10 @@ jobs:
           
           echo "Total services: $TOTAL_SERVICES, Running properly: $RUNNING_SERVICES"
           
-          # We expect 3 services: traefik(1/1), seq(1/1), subtitles-api(2/2)
-          if [ "$RUNNING_SERVICES" -lt 3 ]; then
+          # We expect 4 services: traefik(1/1), postgres(1/1), seq(1/1), subtitles-api(2/2)
+          if [ "$RUNNING_SERVICES" -lt 4 ]; then
             echo "❌ WARNING: Not all services are running properly"
-            echo "Expected: 3 services running, Got: $RUNNING_SERVICES"
+            echo "Expected: 4 services running, Got: $RUNNING_SERVICES"
             # Don't fail deployment, but warn
           else
             echo "✅ All services running properly!"

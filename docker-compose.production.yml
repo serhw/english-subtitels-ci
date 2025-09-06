@@ -83,6 +83,7 @@ services:
     secrets:
       - db_connection_string
     depends_on:
+      - postgres
       - seq
       - traefik
     networks:
@@ -108,6 +109,32 @@ services:
     volumes:
       # Named volume for Serilog buffering
       - serilog-buffer:/tmp/serilog-buffer
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=subtitles
+      - POSTGRES_USER=subtitles_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subtitles_user -d subtitles"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   seq:
     image: datalust/seq:latest
@@ -142,6 +169,7 @@ networks:
     attachable: true
 
 volumes:
+  postgres-data:
   seq-data:
   serilog-buffer:
   traefik-certificates:
@@ -150,6 +178,9 @@ secrets:
   db_connection_string:
     external: true
     name: subtitles_db_connection
+  postgres_password:
+    external: true
+    name: postgres_password
   dashboard_users:
     external: true
     name: traefik_dashboard_users
