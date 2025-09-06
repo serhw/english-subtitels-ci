@@ -68,12 +68,6 @@ jobs:
             exit 1
           fi
           
-          if ! docker secret inspect pgadmin_email >/dev/null 2>&1; then
-            echo "❌ ERROR: pgadmin_email secret not found"
-            echo "Create it with: echo 'admin@sub-english.top' | docker secret create pgadmin_email -"
-            exit 1
-          fi
-          
           if ! docker secret inspect pgadmin_password >/dev/null 2>&1; then
             echo "❌ ERROR: pgadmin_password secret not found"
             echo "Create it with: echo 'your_pgadmin_password' | docker secret create pgadmin_password -"
@@ -113,6 +107,7 @@ jobs:
           
           # Set environment variables
           export SEQ_ADMINPASSWORDHASH="${{ secrets.SEQ_ADMIN_PASSWORD_HASH }}"
+          export PGADMIN_EMAIL="${{ secrets.PGADMIN_EMAIL }}"
           
           # Deploy the stack
           echo "=== Deploying Stack ==="

@@ -139,12 +139,11 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     environment:
-      - PGADMIN_DEFAULT_EMAIL_FILE=/run/secrets/pgadmin_email
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD_FILE=/run/secrets/pgadmin_password
       - PGADMIN_CONFIG_SERVER_MODE=True
       - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
     secrets:
-      - pgadmin_email
       - pgadmin_password
     volumes:
       - pgadmin-data:/var/lib/pgadmin
@@ -215,9 +214,6 @@ secrets:
   postgres_password:
     external: true
     name: postgres_password
-  pgadmin_email:
-    external: true
-    name: pgadmin_email
   pgadmin_password:
     external: true
     name: pgadmin_password
